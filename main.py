@@ -22,7 +22,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Session middleware لتخزين بيانات المستخدم المسجل مؤقتاً
-app.add_middleware(SessionMiddleware, secret_key="super-secret-key-change-in-production")
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "super-secret-key-change-in-production"))
 
 templates = Jinja2Templates(directory="templates")
 
@@ -42,8 +42,9 @@ GEMINI_KEYS = [
     os.getenv("GEMINI_KEY_2")
 ]
 
-# منع مشكلة HTTPS في بيئة التطوير المحلية
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+# منع مشكلة HTTPS في بيئة التطوير المحلية فقط
+if os.getenv("ENV") == "development":
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 def extract_json_from_text(title, desc, text):
     """دالة تقوم بإرسال النص للذكاء الاصطناعي وتستخرج الأسئلة بصيغة JSON"""
@@ -115,17 +116,23 @@ def extract_json_from_text(title, desc, text):
             model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt)
             result = response.text.strip()
-            
-            # تنظيف رد الذكاء الاصطناعي لضمان أنه JSON نقي
             if result.startswith("```json"):
-                result = result[7:-3].strip()
-            elif result.startswith("```"):
-                result = result[3:-3].strip()
+                result = result[7:]
+            if result.endswith("```"):
+                result = result[:-3]
             
-            return json.loads(result)
+            try:
+                parsed_data = json.loads(result.strip())
+                return parsed_data
+            except json.JSONDecodeError as e:
+                print(f"JSON Decode Error: {e}")
+                return {
+                    "title": "استبيان تم إنشاؤه جزئياً (خطأ في التحليل)",
+                    "description": "واجه الذكاء الاصطناعي مشكلة في تنسيق الإجابة. يرجى مراجعة الأسئلة.",
+                    "questions": [{"title": "الرجاء إعادة صياغة الأسئلة والمحاولة مرة أخرى", "type": "PARAGRAPH", "options": []}]
+                }
         except Exception as e:
             print(f"فشل المفتاح في تحليل النص. الخطأ: {e}")
-            last_error = e
             continue
             
     # إذا فشلت جميع المفاتيح
@@ -133,7 +140,7 @@ def extract_json_from_text(title, desc, text):
         "title": title,
         "description": desc,
         "questions": [
-            { "type": "TEXT", "text": f"فشل الذكاء الاصطناعي في التحليل. الخطأ: {last_error}" }
+            { "type": "TEXT", "text": "حدث خطأ داخلي. يرجى المحاولة لاحقاً." }
         ]
     }
 
