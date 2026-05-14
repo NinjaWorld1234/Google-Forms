@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مساحة العمل | Smart Forms</title>
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
+        .gradient-bg { background: linear-gradient(135deg, #4f46e5, #9333ea); }
+        .textarea-custom::-webkit-scrollbar { width: 8px; }
+        .textarea-custom::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
+        .textarea-custom::-webkit-scrollbar-thumb { background: #c7c7cc; border-radius: 8px; }
+    </style>
+</head>
+<body class="text-gray-800 flex flex-col min-h-screen">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 flex items-center justify-center">
+                        <img src="/static/logo.png" alt="Logo" class="w-full h-full object-contain drop-shadow-sm rounded-xl">
+                    </div>
+                    <span class="font-extrabold text-2xl tracking-tight text-gray-900">Smart Forms</span>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="text-left hidden sm:block">
+                        <p class="text-sm font-bold text-gray-900">{{ user_info.get('name', 'User') }}</p>
+                        <p class="text-xs text-gray-500">{{ user_info.get('email', '') }}</p>
+                    </div>
+                    {% if user_info.get('picture') %}
+                    <img class="h-11 w-11 rounded-full border-2 border-indigo-100 p-0.5 object-cover" src="{{ user_info.get('picture') }}" alt="Profile" referrerpolicy="no-referrer" onerror="this.style.display='none'">
+                    {% else %}
+                    <div class="h-11 w-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg border-2 border-indigo-200">
+                        {{ user_info.get('name', 'U')[0] }}
+                    </div>
+                    {% endif %}
+                    <a href="/logout" class="ml-4 mr-2 text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors" title="تسجيل الخروج">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 py-10">
+        
+        <div class="mb-8 text-center sm:text-right">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">إنشاء استبيان جديد</h1>
+            <p class="text-gray-500">ارفع ملف الوورد أو قم بلصق نصوص الأسئلة المعتمدة، وسيقوم الذكاء الاصطناعي ببناء النموذج فوراً.</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <!-- تمت إضافة enctype لدعم رفع الملفات -->
+            <form action="/create_form" method="POST" enctype="multipart/form-data" class="p-6 sm:p-8" id="surveyForm">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">عنوان الاستبيان</label>
+                        <input type="text" name="survey_title" placeholder="مثال: استبيان أثر التكنولوجيا في التعليم" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">وصف مختصر (اختياري)</label>
+                        <input type="text" name="survey_desc" placeholder="الرجاء الإجابة بموضوعية وسرية تامة..." class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="mb-6 relative">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">نص الأسئلة (أو ارفع ملفاً)</label>
+                    <div class="absolute left-4 top-10 flex gap-2 items-center">
+                        <span id="fileNameDisplay" class="text-sm font-bold text-indigo-600 hidden"></span>
+                        <button type="button" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs py-2 px-4 rounded-lg transition border border-indigo-200" onclick="document.getElementById('fileUpload').click()">
+                            📎 إرفاق ملف وورد (.docx)
+                        </button>
+                        <input type="file" id="fileUpload" name="file_upload" class="hidden" accept=".doc,.docx,.txt" onchange="updateFileName(this)">
+                    </div>
+                    <textarea name="raw_text" id="rawText" placeholder="قم بنسخ ولصق الأسئلة والخيارات هنا... (سيتم تجاهل هذا المربع إذا قمت بإرفاق ملف)" class="textarea-custom w-full h-80 px-5 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-gray-700 text-base leading-relaxed"></textarea>
+                </div>
+
+                <div class="flex items-center justify-between pt-6 border-t border-gray-100">
+                    <p class="text-sm text-gray-400 hidden md:block">يتم استخدام الذكاء الاصطناعي لتحليل الأسئلة 🤖</p>
+                    <button type="submit" id="submitBtn" class="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5">
+                        <span>تحليل النص وإنشاء Google Forms</span>
+                        <svg class="w-5 h-5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto py-6 text-center text-base md:text-lg font-bold text-gray-700 w-full border-t border-gray-200 mt-10 bg-white">
+        <p>
+            تم بناء هذه الأداة الذكية عن طريق مؤسسة 
+            ( <span class="font-bold text-indigo-600">العقل القوي</span> للذكاء الاصطناعي ) ، نابلس - فلسطين ، 
+            واتساب: <a href="https://wa.me/970593225370" target="_blank" class="text-green-600 hover:text-green-700 font-bold transition-colors inline-block" dir="ltr">+970593225370</a>
+        </p>
+    </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center">
+        <div class="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">جاري المعالجة السحرية بالذكاء الاصطناعي...</h3>
+        <p class="text-gray-500 font-medium animate-pulse text-center max-w-sm">نقوم بتحليل الأسئلة (من الملف أو النص) وبناء النموذج في درايف الخاص بك. قد يستغرق هذا بضع ثوانٍ...</p>
+    </div>
+
+    <script>
+        function updateFileName(input) {
+            const display = document.getElementById('fileNameDisplay');
+            const textarea = document.getElementById('rawText');
+            if (input.files && input.files[0]) {
+                display.textContent = 'تم إرفاق: ' + input.files[0].name;
+                display.classList.remove('hidden');
+                textarea.placeholder = "تم إرفاق ملف. سيتم الاعتماد على محتوى الملف المرفق لتوليد الاستبيان.";
+                textarea.value = ""; // Clear text to avoid confusion
+                textarea.disabled = true;
+                textarea.classList.add('bg-gray-50');
+            } else {
+                display.classList.add('hidden');
+                textarea.placeholder = "قم بنسخ ولصق الأسئلة والخيارات هنا... (سيتم تجاهل هذا المربع إذا قمت بإرفاق ملف)";
+                textarea.disabled = false;
+                textarea.classList.remove('bg-gray-50');
+            }
+        }
+
+        document.getElementById('surveyForm').addEventListener('submit', function(e) {
+            // Check if either file or text is provided
+            const fileInput = document.getElementById('fileUpload');
+            const textarea = document.getElementById('rawText');
+            
+            if (!fileInput.files[0] && textarea.value.trim() === "") {
+                e.preventDefault();
+                alert("الرجاء إما لصق النص أو إرفاق ملف!");
+                return;
+            }
+
+            // إظهار شاشة التحميل
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('loadingOverlay').classList.add('flex');
+        });
+    </script>
+</body>
+</html>

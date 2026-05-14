@@ -1,0 +1,24 @@
+# Secrets
+.env
+client_secret.json
+credentials.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env/
+.venv/
+env.bak/
+venv.bak/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
