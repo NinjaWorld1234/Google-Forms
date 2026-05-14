@@ -162,6 +162,10 @@ async def index(request: Request):
         return RedirectResponse(url="/dashboard")
     return templates.TemplateResponse(request=request, name="index.html", context={"request": request})
 
+@app.get("/google357ec578af843b9c.html")
+async def google_verification():
+    return HTMLResponse("google-site-verification: google357ec578af843b9c.html")
+
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy(request: Request):
     return templates.TemplateResponse(request=request, name="privacy.html", context={})
