@@ -10,15 +10,45 @@
     <style>
         body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
         .gradient-bg { background: linear-gradient(135deg, #10b981, #059669); }
+        @keyframes laser-spin { 100% { transform: rotate(360deg); } }
+        .laser-wrapper { position: relative; border-radius: 1rem; padding: 3px; overflow: hidden; z-index: 1; }
+        .laser-wrapper::before {
+            content: ''; position: absolute; top: -150%; left: -50%; width: 200%; height: 400%;
+            background: conic-gradient(transparent, transparent, transparent, transparent, #3b82f6, #8b5cf6, #ec4899);
+            animation: laser-spin 4s linear infinite; z-index: -1;
+        }
+        .laser-content { background: linear-gradient(to right, #f5f3ff, #ffffff, #eff6ff); border-radius: 0.85rem; height: 100%; position: relative; z-index: 2; }
+        
+        /* Lively Animations & Glassmorphism */
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 8s infinite ease-in-out; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 40px -10px rgba(16, 185, 129, 0.15);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
 
-    <!-- Confetti effects simulation -->
-    <div class="absolute top-[-5%] left-[-5%] w-64 h-64 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50"></div>
-    <div class="absolute bottom-[-5%] right-[-5%] w-64 h-64 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50"></div>
+    <!-- Animated Background Blobs -->
+    <div class="fixed inset-0 w-full h-full -z-10 pointer-events-none">
+        <div class="absolute top-[10%] left-[20%] w-[400px] h-[400px] bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+        <div class="absolute top-[30%] right-[20%] w-[300px] h-[300px] bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[20%] left-[40%] w-[500px] h-[500px] bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-4000"></div>
+    </div>
 
-    <div class="bg-white max-w-md w-full rounded-3xl p-10 text-center shadow-xl border border-gray-100 relative z-10 transform transition-all scale-100 animate-[bounce_0.5s_ease-out]">
+    <div class="glass-card max-w-md w-full rounded-3xl p-10 text-center relative z-10 transition-transform hover:-translate-y-1 duration-500">
         
         <div class="w-24 h-24 gradient-bg rounded-full mx-auto flex items-center justify-center mb-6 shadow-lg shadow-green-500/40 border-4 border-white">
             <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
