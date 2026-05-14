@@ -166,6 +166,10 @@ async def index(request: Request):
 async def privacy(request: Request):
     return templates.TemplateResponse(request=request, name="privacy.html", context={})
 
+@app.get("/terms", response_class=HTMLResponse)
+async def terms(request: Request):
+    return templates.TemplateResponse(request=request, name="terms.html", context={})
+
 @app.get("/login")
 async def login(request: Request):
     # دعم Vercel عن طريق جلب بيانات العميل من متغيرات البيئة إن وجدت
