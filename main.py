@@ -160,7 +160,7 @@ async def index(request: Request):
     user_info = request.session.get('user_info')
     if user_info:
         return RedirectResponse(url="/dashboard")
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html", context={"request": request})
 
 @app.get("/login")
 async def login(request: Request):
@@ -238,7 +238,7 @@ async def dashboard(request: Request):
     if not user_info:
         return RedirectResponse(url="/")
         
-    return templates.TemplateResponse("dashboard.html", {
+    return templates.TemplateResponse(request=request, name="dashboard.html", context={
         "request": request, 
         "user_info": user_info
     })
@@ -360,7 +360,7 @@ async def create_form(
             
         form_url = f"https://docs.google.com/forms/d/{form_id}/edit"
         
-        return templates.TemplateResponse("success.html", {
+        return templates.TemplateResponse(request=request, name="success.html", context={
             "request": request,
             "form_url": form_url
         })
