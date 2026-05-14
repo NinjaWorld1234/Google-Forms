@@ -20,13 +20,15 @@ from googleapiclient.discovery import build
 
 app = FastAPI()
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # تفعيل مجلد الصور (الشعار)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # Session middleware لتخزين بيانات المستخدم المسجل مؤقتاً
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "super-secret-key-change-in-production"))
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 CLIENT_SECRETS_FILE = "client_secret.json"
 
