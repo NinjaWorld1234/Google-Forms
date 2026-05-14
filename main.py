@@ -162,10 +162,23 @@ async def index(request: Request):
 
 @app.get("/login")
 async def login(request: Request):
-    flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE, scopes=SCOPES)
+    # دعم Vercel عن طريق جلب بيانات العميل من متغيرات البيئة إن وجدت
+    client_secret_env = os.getenv("GOOGLE_CLIENT_SECRET")
     
-    flow.redirect_uri = "http://localhost:8000/auth/callback"
+    if client_secret_env:
+        client_config = json.loads(client_secret_env)
+        flow = google_auth_oauthlib.flow.Flow.from_client_config(client_config, scopes=SCOPES)
+    else:
+        flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(CLIENT_SECRETS_FILE, scopes=SCOPES)
+    
+    # تحديد الرابط الديناميكي
+    redirect_uri = str(request.base_url).rstrip('/') + "/auth/callback"
+    
+    # إصلاح مشكلة HTTP في Vercel (إذا كان البروتوكول https ولكنه يظهر http)
+    if "vercel.app" in redirect_uri or request.headers.get("x-forwarded-proto") == "https":
+        redirect_uri = redirect_uri.replace("http://", "https://")
+        
+    flow.redirect_uri = redirect_uri
     
     authorization_url, state = flow.authorization_url(
         access_type='offline',
@@ -182,9 +195,18 @@ async def auth_callback(request: Request, state: str, code: str):
     if state != request.session.get('state'):
         return HTMLResponse("Invalid state parameter", status_code=400)
     
-    flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
-    flow.redirect_uri = "http://localhost:8000/auth/callback"
+    client_secret_env = os.getenv("GOOGLE_CLIENT_SECRET")
+    if client_secret_env:
+        client_config = json.loads(client_secret_env)
+        flow = google_auth_oauthlib.flow.Flow.from_client_config(client_config, scopes=SCOPES, state=state)
+    else:
+        flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
+        
+    redirect_uri = str(request.base_url).rstrip('/') + "/auth/callback"
+    if "vercel.app" in redirect_uri or request.headers.get("x-forwarded-proto") == "https":
+        redirect_uri = redirect_uri.replace("http://", "https://")
+        
+    flow.redirect_uri = redirect_uri
     
     code_verifier = request.session.get('code_verifier')
     if code_verifier:
