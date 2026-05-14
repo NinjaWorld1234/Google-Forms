@@ -4,11 +4,13 @@ import random
 import io
 import docx
 import urllib.request
+import csv
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
 from fastapi import FastAPI, Request, Form, Depends, UploadFile, File
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -262,6 +264,19 @@ async def create_form(
         result = form_service.forms().create(body=form_body).execute()
         form_id = result["formId"]
         
+        # 4. تسجيل حركة المستخدم (Analytics)
+        try:
+            user_info = request.session.get('user_info', {})
+            log_email = user_info.get("email", "مجهول")
+            file_exists = os.path.exists("users_log.csv")
+            with open("users_log.csv", "a", encoding="utf-8-sig", newline="") as f:
+                writer = csv.writer(f)
+                if not file_exists:
+                    writer.writerow(["تاريخ الإنشاء", "البريد الإلكتروني", "عنوان الاستبيان", "معرف النموذج (ID)"])
+                writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), log_email, survey_title, form_id])
+        except Exception as log_e:
+            print(f"Failed to log user data: {log_e}")
+            
         description = data.get('description', survey_desc)
         if description:
             update_body = {
@@ -333,3 +348,14 @@ async def create_form(
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/")
+
+@app.get("/admin/logs")
+async def download_logs(secret: str = ""):
+    admin_secret = os.getenv("ADMIN_SECRET", "SmartAdmin2026")
+    if secret != admin_secret:
+        return HTMLResponse("<div dir='rtl' style='text-align:center; padding:50px; font-family:Arial;'><h2 style='color:red;'>غير مصرح لك بالوصول! 🛑</h2></div>", status_code=403)
+        
+    if not os.path.exists("users_log.csv"):
+        return HTMLResponse("<div dir='rtl' style='text-align:center; padding:50px; font-family:Arial;'><h2>لم يقم أي شخص بإنشاء استبيان حتى الآن! 🤷‍♂️</h2></div>", status_code=404)
+        
+    return FileResponse(path="users_log.csv", filename="smart_forms_users_log.csv", media_type="text/csv")
