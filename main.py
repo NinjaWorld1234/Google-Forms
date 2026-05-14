@@ -3,7 +3,7 @@ import json
 import random
 import io
 import docx
-import google.generativeai as genai
+import urllib.request
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -112,10 +112,17 @@ def extract_json_from_text(title, desc, text):
     last_error = None
     for key in keys:
         try:
-            genai.configure(api_key=key)
-            model = genai.GenerativeModel('gemini-2.5-flash')
-            response = model.generate_content(prompt)
-            result = response.text.strip()
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}"
+            headers = {'Content-Type': 'application/json'}
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"temperature": 0.2}
+            }
+            req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers=headers)
+            with urllib.request.urlopen(req) as response:
+                result_json = json.loads(response.read().decode('utf-8'))
+                
+            result = result_json['candidates'][0]['content']['parts'][0]['text'].strip()
             if result.startswith("```json"):
                 result = result[7:]
             if result.endswith("```"):
@@ -229,12 +236,14 @@ async def create_form(
         survey_text = raw_text
         if file_upload and file_upload.filename:
             content = await file_upload.read()
+            if len(content) > 5 * 1024 * 1024:
+                return HTMLResponse("<div dir='rtl' style='text-align:center; padding:20px;'><h2 style='color:red;'>الملف كبير جداً</h2><p>الحد الأقصى المسموح به هو 5 ميجابايت.</p></div>", status_code=400)
+            
             if file_upload.filename.endswith('.docx') or file_upload.filename.endswith('.doc'):
                 doc = docx.Document(io.BytesIO(content))
                 survey_text = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
             else:
                 survey_text = content.decode('utf-8')
-                
         if not survey_text.strip():
             survey_text = "لم يتم توفير أي أسئلة."
             
